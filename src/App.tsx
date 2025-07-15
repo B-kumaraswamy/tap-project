@@ -7,6 +7,7 @@ import { useReverseGeocode } from "./hooks/useReverseGeocode";
 import { AnimatedInView } from "./components/AnimatedInView";
 import { ChartCanvas } from "./components/ChartCanvas";
 import { toast } from "sonner";
+import { Spinner } from "./components/ui/spinner";
 
 export default function App() {
   const { expenses } = useData();
@@ -70,52 +71,74 @@ export default function App() {
   const COLORS = ["#4F46E5", "#16A34A", "#DC2626", "#CA8A04", "#2563EB"];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Network status banners */}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-center">
+      {/* Hero card */}
+      <div className="max-w-2xl mx-auto mt-4 p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg ring-1 ring-gray-200 mb-8">
+        {/* Location badge */}
 
-      {/* Geolocation status */}
-      {geoLoading && (
-        <div className="p-2 text-center text-gray-600 mb-2">
-          Fetching location…
+        {locationName && (
+          <div className="inline-flex items-center px-3 py-1  text-gray-700 rounded-full text-sm  mb-4">
+            <svg
+              className="w-4 h-4 mr-1"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M10 0C6.686 0 4 2.686 4 6c0 7 6 14 6 14s6-7 6-14c0-3.314-2.686-6-6-6z" />
+            </svg>
+            You are near: {locationName}
+          </div>
+        )}
+        {geoLoading && (
+          <div className="p-2 text-center text-gray-600 mb-2">
+            Fetching location…
+          </div>
+        )}
+        {geoError && (
+          <div className="p-2 text-center text-red-600 mb-2">{geoError}</div>
+        )}
+        {coords && (
+          <div className="p-2 text-center text-sm  text-gray-700 mb-4">
+            Your location: {coords.latitude.toFixed(3)},{" "}
+            {coords.longitude.toFixed(3)}
+          </div>
+        )}
+        {nameLoading && (
+          <div className="p-2 text-center text-gray-600 mb-2">
+            Looking up place name…
+          </div>
+        )}
+
+        {/* Title & subtitle */}
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+          Budget Visualizer
+        </h1>
+
+        {/* Call‑to‑action button */}
+        <div className="flex justify-center">
+          <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">
+            Scroll down to see chart ⬇️
+          </button>
+        </div>
+      </div>
+
+      {/* Network & geolocation banners (unchanged) */}
+      {!online && (
+        <div className="bg-red-100 text-red-800 p-2 text-center mb-2 rounded">
+          You are offline. Showing cached data.
         </div>
       )}
-      {geoError && (
-        <div className="p-2 text-center text-red-600 mb-2">{geoError}</div>
-      )}
-      {coords && (
-        <div className="p-2 text-center text-sm text-gray-700 mb-4">
-          Your location: {coords.latitude.toFixed(3)},{" "}
-          {coords.longitude.toFixed(3)}
-        </div>
-      )}
-      {nameLoading && (
-        <div className="p-2 text-center text-gray-600 mb-2">
-          Looking up place name…
-        </div>
-      )}
+
       {nameError && (
         <div className="p-2 text-center text-red-600 mb-2">{nameError}</div>
       )}
-      {locationName && (
-        <div className="p-2 text-center text-sm text-gray-700 mb-4">
-          You are near: {locationName}
-        </div>
-      )}
 
-      {/* Header */}
-      <h1 className="text-3xl font-bold mb-6 text-center">Budget Visualizer</h1>
+      {/* Spacer to push chart off-screen */}
+      <div className="h-screen" />
 
-      {/* Fullscreen spacer */}
-      <div className="h-screen flex items-center justify-center mb-6">
-        <p className="text-xl text-gray-600">
-          Scroll down to reveal your spending chart…
-        </p>
-      </div>
-
-      {/* Card with legend  animated chart */}
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+      {/* Legend & chart card */}
+      <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
         {/* Legend */}
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <ul className="flex flex-wrap gap-4">
             {entries.map(([cat, amt], i) => (
               <li key={cat} className="flex items-center text-sm">
@@ -124,7 +147,7 @@ export default function App() {
                   style={{ backgroundColor: COLORS[i % COLORS.length] }}
                 />
                 {cat}{" "}
-                <span className="text-gray-500">
+                <span className="text-gray-500 dark:text-gray-400">
                   ({((amt / sum) * 100).toFixed(1)}%)
                 </span>
               </li>
@@ -133,10 +156,9 @@ export default function App() {
         </div>
 
         {/* Animated chart slot */}
-        <div className="p-6">
-          <AnimatedInView rootMargin="0px" threshold={0.5}>
+        <div className="p-6 bg-gray-50 dark:bg-gray-900">
+          <AnimatedInView rootMargin="0px" threshold={0.1}>
             {(inView) => {
-              // Delay chart mount by 800ms after threshold met
               useEffect(() => {
                 if (inView) {
                   const id = setTimeout(() => setShowChart(true), 800);
@@ -146,12 +168,11 @@ export default function App() {
 
               if (!inView || !showChart) {
                 return (
-                  <div className="h-[300px] flex items-center justify-center bg-gray-200 rounded">
-                    <p className="text-lg text-gray-500">Loading chart…</p>
+                  <div className="h-[300px] flex items-center justify-center">
+                    <Spinner className="w-12 h-12 text-gray-500" />
                   </div>
                 );
               }
-
               return <ChartCanvas data={expenses} size={300} />;
             }}
           </AnimatedInView>
