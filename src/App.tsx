@@ -1,42 +1,77 @@
 // src/App.tsx
-import { useState, useEffect } from 'react';
-import { useData } from './context/DataProvider';
-import { useNetworkStatus } from './hooks/useNetworkStatus';
-import { useGeolocation } from './hooks/useGeolocation';
-import { useReverseGeocode } from './hooks/useReverseGeocode';
-import { AnimatedInView } from './components/AnimatedInView';
-import { ChartCanvas } from './components/ChartCanvas';
+import { useState, useEffect } from "react";
+import { useData } from "./context/DataProvider";
+import { useNetworkStatus } from "./hooks/useNetworkStatus";
+import { useGeolocation } from "./hooks/useGeolocation";
+import { useReverseGeocode } from "./hooks/useReverseGeocode";
+import { AnimatedInView } from "./components/AnimatedInView";
+import { ChartCanvas } from "./components/ChartCanvas";
+import { toast } from "sonner";
 
 export default function App() {
   const { expenses } = useData();
   const { online, effectiveType } = useNetworkStatus();
   const { coords, loading: geoLoading, error: geoError } = useGeolocation();
   const [showChart, setShowChart] = useState(false);
-  const { name: locationName, loading: nameLoading, error: nameError } =
-   useReverseGeocode(coords?.latitude, coords?.longitude);
+  const [offToastFired, setOffToastFired] = useState(false);
+  const [slowToastFired, setSlowToastFired] = useState(false);
+  const {
+    name: locationName,
+    loading: nameLoading,
+    error: nameError,
+  } = useReverseGeocode(coords?.latitude, coords?.longitude);
+
+  useEffect(() => {
+    if (!online && !offToastFired) {
+      toast.warning("You are offline.", {
+        duration: 1000,
+        style: {
+          backgroundColor: "#fee2e2",
+          color: "#991b1b",
+        },
+      });
+      setOffToastFired(true);
+    }
+    // reset when back online
+    if (online) {
+      setOffToastFired(false);
+    }
+  }, [online, offToastFired, toast]);
+
+  // 2️⃣ Slow‑2G toast
+  useEffect(() => {
+    const isSlow2G = online && effectiveType?.includes("2g");
+    if (isSlow2G && !slowToastFired) {
+      toast.warning(`Slow network. Chart may load slowly.`, {
+        duration: 1000,
+        style: {
+          backgroundColor: "#fee2e2",
+          color: "#991b1b",
+        },
+      });
+      setSlowToastFired(true);
+    }
+    // reset when not 2G
+    if (!isSlow2G) {
+      setSlowToastFired(false);
+    }
+  }, [online, effectiveType, slowToastFired, toast]);
 
   // Aggregate for legend
-  const totals = expenses.reduce<Record<string, number>>((acc, { category, amount }) => {
-    acc[category] = (acc[category] || 0) + amount;
-    return acc;
-  }, {});
+  const totals = expenses.reduce<Record<string, number>>(
+    (acc, { category, amount }) => {
+      acc[category] = (acc[category] || 0) + amount;
+      return acc;
+    },
+    {}
+  );
   const entries = Object.entries(totals);
   const sum = entries.reduce((s, [, a]) => s + a, 0);
-  const COLORS = ['#4F46E5', '#16A34A', '#DC2626', '#CA8A04', '#2563EB'];
+  const COLORS = ["#4F46E5", "#16A34A", "#DC2626", "#CA8A04", "#2563EB"];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Network status banners */}
-      {!online && (
-        <div className="bg-red-100 text-red-800 p-2 text-center mb-2">
-          You are offline. Showing cached data.
-        </div>
-      )}
-      {online && effectiveType?.includes('2g') && (
-        <div className="bg-yellow-100 text-yellow-800 p-2 text-center mb-2">
-          Slow connection ({effectiveType}). Chart updates may be delayed.
-        </div>
-      )}
 
       {/* Geolocation status */}
       {geoLoading && (
@@ -45,33 +80,30 @@ export default function App() {
         </div>
       )}
       {geoError && (
-        <div className="p-2 text-center text-red-600 mb-2">
-          {geoError}
-        </div>
+        <div className="p-2 text-center text-red-600 mb-2">{geoError}</div>
       )}
       {coords && (
         <div className="p-2 text-center text-sm text-gray-700 mb-4">
-          Your location: {coords.latitude.toFixed(3)}, {coords.longitude.toFixed(3)}
+          Your location: {coords.latitude.toFixed(3)},{" "}
+          {coords.longitude.toFixed(3)}
         </div>
       )}
       {nameLoading && (
-       <div className="p-2 text-center text-gray-600 mb-2">
-        Looking up place name…
-      </div>
-     )}
-     {nameError && (
-       <div className="p-2 text-center text-red-600 mb-2">
-         {nameError}
-       </div>
-     )}
-     {locationName && (
-       <div className="p-2 text-center text-sm text-gray-700 mb-4">
-         You are near: {locationName}
-       </div>
-     )}
+        <div className="p-2 text-center text-gray-600 mb-2">
+          Looking up place name…
+        </div>
+      )}
+      {nameError && (
+        <div className="p-2 text-center text-red-600 mb-2">{nameError}</div>
+      )}
+      {locationName && (
+        <div className="p-2 text-center text-sm text-gray-700 mb-4">
+          You are near: {locationName}
+        </div>
+      )}
 
       {/* Header */}
-      <h1 className="text-3xl font-bold mb-6 text-center">🚀 Budget Visualizer</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">Budget Visualizer</h1>
 
       {/* Fullscreen spacer */}
       <div className="h-screen flex items-center justify-center mb-6">
@@ -91,7 +123,7 @@ export default function App() {
                   className="w-3 h-3 mr-2 rounded-sm"
                   style={{ backgroundColor: COLORS[i % COLORS.length] }}
                 />
-                {cat}{' '}
+                {cat}{" "}
                 <span className="text-gray-500">
                   ({((amt / sum) * 100).toFixed(1)}%)
                 </span>
