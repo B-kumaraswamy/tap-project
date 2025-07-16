@@ -24,7 +24,7 @@ export default function App() {
 
   useEffect(() => {
     if (!online && !offToastFired) {
-      toast.warning("You are offline.", {
+      toast.warning("You are offline. Check your connection", {
         duration: 1000,
         style: {
           backgroundColor: "#fee2e2",
@@ -75,6 +75,16 @@ export default function App() {
       {/* Hero card */}
       <div className="max-w-2xl mx-auto mt-4 p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg ring-1 ring-gray-200 mb-8">
         {/* Location badge */}
+        {!online && (
+          <div className="bg-red-100 text-red-800 p-2 text-center mb-2">
+            You are offline. Check your connection.
+          </div>
+        )}
+        {online && effectiveType?.includes("2g") && (
+          <div className="bg-yellow-100 text-yellow-800 p-2 text-center mb-2">
+            Slow connection. Chart may load slowly.
+          </div>
+        )}
 
         {locationName && (
           <div className="inline-flex items-center px-3 py-1  text-gray-700 rounded-full text-sm  mb-4">
@@ -120,13 +130,6 @@ export default function App() {
           </button>
         </div>
       </div>
-
-      {/* Network & geolocation banners (unchanged) */}
-      {!online && (
-        <div className="bg-red-100 text-red-800 p-2 text-center mb-2 rounded">
-          You are offline. Showing cached data.
-        </div>
-      )}
 
       {nameError && (
         <div className="p-2 text-center text-red-600 mb-2">{nameError}</div>
